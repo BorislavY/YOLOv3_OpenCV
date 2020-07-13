@@ -2,6 +2,13 @@ import cv2
 import numpy as np
 import time
 
+# Path to the video file. Leave blank to use the webcam.
+VIDEO_PATH = 'test.mp4'
+# Where to write the resulting video. Leave blank to not write a video.
+WRITE_PATH = 'results.avi'
+# Define a font to be used when displaying class names.
+FONT = cv2.FONT_HERSHEY_PLAIN
+
 
 # Load the YOLOv3 model with OpenCV.
 net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
@@ -17,15 +24,27 @@ classes = []
 with open("coco.names", "r") as f:
     classes = [line.strip() for line in f.readlines()]
 
-# Define a font to be used when displaying class names.
-FONT = cv2.FONT_HERSHEY_PLAIN
 # Initialise a random color to represent each class.
 colors = np.random.uniform(0, 255, size=(len(classes), 3))
 # Define a confidence threshold  for detections.
 conf_thresh = 0.5
 
-# Initialise a video capture object with the first camera.
-cap = cv2.VideoCapture(0)
+# If the video path is not empty, initialise a video capture object with that video.
+if VIDEO_PATH != '':
+    cap = cv2.VideoCapture(VIDEO_PATH)
+# Otherwise, initialise a video capture object with the first camera.
+else:
+    cap = cv2.VideoCapture(0)
+
+# If the write path is not empty, initialise a video writer object for that path with the same dimensions and FPS as
+# the video capture object, using the XVID video codec.
+if WRITE_PATH != '':
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    codec = cv2.VideoWriter_fourcc(*'XVID')
+    output = cv2.VideoWriter(WRITE_PATH, codec, fps, (width, height))
+
 # Initialise a frame counter and get the current time for FPS calculation purposes.
 frame_id = 0
 time_start = time.time()
@@ -33,6 +52,9 @@ time_start = time.time()
 while True:
     # Read the current frame from the camera.
     _, frame = cap.read()
+    # Check if the video has ended. If it has, break the loop.
+    if frame is None:
+        break
     # Add 1 to the frame count every time a frame is read.
     frame_id += 1
 
@@ -97,13 +119,16 @@ while True:
             # Display the class label and the confidence inside the box.
             cv2.putText(frame, label + " " + str(round(confidence, 2)), (x, y + 30), FONT, 2, color, 2)
 
+    # If the write path is not blank, write the frame to the output video.
+    if WRITE_PATH != '':
+        output.write(frame)
+
     # Calculate the elapsed time since starting the loop.
     elapsed_time = time.time() - time_start
     # Calculate the average FPS performance to this point.
     fps = frame_id/elapsed_time
     # Display the FPS at the top left corner.
     cv2.putText(frame, "FPS: " + str(round(fps, 2)), (8, 30), FONT, 2, (0, 0, 0), 2)
-
     # Show the frame.
     cv2.imshow("Camera", frame)
     # Wait at least 1ms for key event and record the pressed key.
@@ -112,6 +137,6 @@ while True:
     if key == 27:
         break
 
-# Release the camera and destroy all windows.
+# Release the capture object and destroy all windows.
 cap.release()
 cv2.destroyAllWindows()
