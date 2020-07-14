@@ -6,9 +6,12 @@ import time
 VIDEO_PATH = 'test.mp4'
 # Where to write the resulting video. Leave blank to not write a video.
 WRITE_PATH = 'results.avi'
-# Define a font to be used when displaying class names.
-FONT = cv2.FONT_HERSHEY_PLAIN
-
+# Define a font, scale and thickness to be used when displaying class names.
+FONT = cv2.FONT_HERSHEY_COMPLEX
+FONT_SCALE = 0.75
+FONT_THICKNESS = 2
+# Define a confidence threshold  for detections.
+CONF_THRESH = 0.4
 
 # Load the YOLOv3 model with OpenCV.
 net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
@@ -26,8 +29,6 @@ with open("coco.names", "r") as f:
 
 # Initialise a random color to represent each class.
 colors = np.random.uniform(0, 255, size=(len(classes), 3))
-# Define a confidence threshold  for detections.
-conf_thresh = 0.5
 
 # If the video path is not empty, initialise a video capture object with that video.
 if VIDEO_PATH != '':
@@ -81,7 +82,7 @@ while True:
             # Extract the score of that class.
             confidence = scores[class_id]
             # If that score is higher than the set threshold, execute the code below.
-            if confidence > conf_thresh:
+            if confidence > CONF_THRESH:
                 # Get the shape of the unprocessed frame.
                 height, width, channels = frame.shape
                 # Use the detected box ratios to get box coordinates which apply to the input image.
@@ -100,7 +101,7 @@ while True:
                 boxes.append([x, y, w, h])
 
     # Apply non-max suppression to get rid of overlapping boxes.
-    indexes = cv2.dnn.NMSBoxes(boxes, confidences, conf_thresh, 0.4)
+    indexes = cv2.dnn.NMSBoxes(boxes, confidences, CONF_THRESH, 0.4)
 
     # Iterate through the detected boxes.
     for i in range(len(boxes)):
@@ -110,14 +111,21 @@ while True:
             x, y, w, h = boxes[i]
             # Extract the class label from the class ID.
             label = str(classes[class_ids[i]])
-            # Extract the confidence for the detected class.
-            confidence = confidences[i]
+            # Extract the confidence for the detected class and store it as a string with two decimal place precision.
+            confidence = '%.2f' % confidences[i]
             # Get the color for that class.
             color = colors[class_ids[i]]
-            # Draw the box.
+            # Draw the box around the object.
             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-            # Display the class label and the confidence inside the box.
-            cv2.putText(frame, label + " " + str(round(confidence, 2)), (x, y + 30), FONT, 2, color, 2)
+
+            # Define the text to be displayed above the main box.
+            text = label + " " + confidence
+            # Get the width and height of the text to place a filled box behind it.
+            (text_width, text_height), baseline = cv2.getTextSize(text, FONT, FONT_SCALE, FONT_THICKNESS)
+            # Draw the filled box where the text would be.
+            cv2.rectangle(frame, (x, y), (x + text_width, y - text_height - 15), color, -1)
+            # Draw the text on top of the box.
+            cv2.putText(frame, text, (x, y - 10), FONT, FONT_SCALE, (255, 255, 255), FONT_THICKNESS)
 
     # If the write path is not blank, write the frame to the output video.
     if WRITE_PATH != '':
@@ -128,7 +136,7 @@ while True:
     # Calculate the average FPS performance to this point.
     fps = frame_id/elapsed_time
     # Display the FPS at the top left corner.
-    cv2.putText(frame, "FPS: " + str(round(fps, 2)), (8, 30), FONT, 2, (0, 0, 0), 2)
+    cv2.putText(frame, "FPS: " + str(round(fps, 2)), (8, 30), FONT, FONT_SCALE, (0, 0, 0), FONT_THICKNESS)
     # Show the frame.
     cv2.imshow("Camera", frame)
     # Wait at least 1ms for key event and record the pressed key.
