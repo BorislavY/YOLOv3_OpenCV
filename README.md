@@ -14,4 +14,4 @@ The script will run on the CPU, but [this guide](https://www.pyimagesearch.com/2
 can be followed to enable OpenCV's "dnn" module to use an NVIDIA GPU instead, resulting in a significant speed improvement.
 
 ### Example of a processed video file:
-![This GIF died :(](https://media.giphy.com/media/gIlM1ps5pjgDoS7cFh/giphy.gif)
+![GIF missing :(](results.gif)
